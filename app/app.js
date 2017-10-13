@@ -1,19 +1,7 @@
-// Copyright (c) 2014 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
-/**
- * Get the current URL.
- *
- * @param {function(string)} callback called when the URL of the current tab
- *   is found.
- */
 function getCurrentTabUrl(callback) {
-    // Query filter to be passed to chrome.tabs.query - see
-    // https://developer.chrome.com/extensions/tabs#method-query
     var queryInfo = {
         active: true,
-        currentWindow: true
+        currentWindow: true,
     };
 
     chrome.tabs.query(queryInfo, (tabs) => {
@@ -47,40 +35,31 @@ function getCurrentTabUrl(callback) {
     // alert(url); // Shows "undefined", because chrome.tabs.query is async.
 }
 
-/**
- * Change the background color of the current page.
- *
- * @param {string} color The new background color.
- */
-function invertColors(tabId) {
-    chrome.tabs.insertCSS(tabId, {
-        file: "app/styles.css"
-    });
+function invertColors(tabId, strategy) {
+    if(strategy) {
+        chrome.tabs.insertCSS(tabId, {
+            file: "app/styles.css",
+        });
+
+        return;
+    }
+
+    var code = 'window.location.reload();';
+
+    chrome.tabs.executeScript(tabId, {code: code});
+
 }
 
-/**
- * Gets the saved background color for url.
- *
- * @param {string} url URL whose background color is to be retrieved.
- * @param {function(string)} callback called with the saved background color for
- *     the given url on success, or a falsy value if no color is retrieved.
- */
-function getSavedBackgroundColor(url, callback) {
+function getSavedThemeStatus(domain, callback) {
     // See https://developer.chrome.com/apps/storage#type-StorageArea. We check
     // for chrome.runtime.lastError to ensure correctness even when the API call
     // fails.
-    chrome.storage.sync.get(url, (items) => {
-        callback(chrome.runtime.lastError ? null : items[url]);
+    chrome.storage.sync.get(domain, (items) => {
+        callback(chrome.runtime.lastError ? null : items[domain]);
     });
 }
 
-/**
- * Sets the given background color for url.
- *
- * @param {string} url URL for which background color is to be saved.
- * @param {string} color The background color to be saved.
- */
-function saveBackgroundColor(url, color) {
+function saveThemeStatus(url, color) {
     var items = {};
     items[url] = color;
     // See https://developer.chrome.com/apps/storage#type-StorageArea. We omit the
@@ -89,32 +68,45 @@ function saveBackgroundColor(url, color) {
     chrome.storage.sync.set(items);
 }
 
-// This extension loads the saved background color for the current tab if one
-// exists. The user can select a new background color from the dropdown for the
-// current page, and it will be saved as part of the extension's isolated
-// storage. The chrome.storage API is used for this purpose. This is different
-// from the window.localStorage API, which is synchronous and stores data bound
-// to a document's origin. Also, using chrome.storage.sync instead of
-// chrome.storage.local allows the extension data to be synced across multiple
-// user devices.
+function getHostname(url) {
+    var hostname;
+    //find & remove protocol (http, ftp, etc.) and get hostname
+
+    (url.indexOf("://") > -1) ? hostname = url.split('/')[2] : hostname = url.split('/')[0];
+
+    //find & remove port number
+    hostname = hostname.split(':')[0];
+    //find & remove "?"
+    hostname = hostname.split('?')[0];
+
+    return hostname;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     getCurrentTabUrl((tab) => {
-        var dropdown = document.getElementById('dropdown');
+        var switcher = document.querySelector('#night-mode-switcher');
+        var tabDomain = getHostname(tab.url);
 
-        // Load the saved background color for this page and modify the dropdown
-        // value, if needed.
-        /*getSavedBackgroundColor(url, (savedColor) => {
-            if (savedColor) {
-                invertColors(savedColor);
-                dropdown.value = savedColor;
+        getSavedThemeStatus(tabDomain, strategy => {
+            switcher.checked = strategy;
+        });
+
+        switcher.addEventListener('click', () => {
+            invertColors(tab.id, switcher.checked);
+            saveThemeStatus(tabDomain, switcher.checked);
+        });
+    });
+});
+
+chrome.webNavigation.onCompleted.addListener(() => {
+    getCurrentTabUrl((tab) => {
+        var tabDomain = getHostname(tab.url);
+        var tabId = tab.id;
+
+        getSavedThemeStatus(tabDomain, strategy => {
+            if(strategy) {
+                invertColors(tabId, strategy);
             }
-        });*/
-
-        // Ensure the background color is changed and saved when the dropdown
-        // selection changes.
-        dropdown.addEventListener('change', () => {
-            invertColors(tab.id);
-            //saveBackgroundColor(url, dropdown.value);
         });
     });
 });

@@ -1,10 +1,15 @@
 :root {
-    background-color: #fefefe;
+    background-color: #000;
+}
+
+body {
+    background-color: #fff;
     filter: invert(90%);
 }
+
 * {
     background-color: inherit;
 }
 img:not([src*=".svg"]), video {
-    filter: invert(90%);
+    filter: invert(100%);
 }
