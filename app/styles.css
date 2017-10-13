@@ -1,8 +1,8 @@
-:root {
+/*:root {
     background-color: #000;
-}
+}*/
 
-body {
+body.__night-mode {
     background-color: #fff;
     filter: invert(90%);
 }
@@ -10,6 +10,11 @@ body {
 * {
     background-color: inherit;
 }
-img:not([src*=".svg"]), video {
+
+.__night-mode img:not([src*=".svg"]),
+.__night-mode [style*="background-image"],
+.__night-mode video,
+.__night-mode svg,
+.__night-mode canvas {
     filter: invert(100%);
 }

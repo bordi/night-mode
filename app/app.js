@@ -36,15 +36,9 @@ function getCurrentTabUrl(callback) {
 }
 
 function invertColors(tabId, strategy) {
-    if(strategy) {
-        chrome.tabs.insertCSS(tabId, {
-            file: "app/styles.css",
-        });
-
-        return;
-    }
-
-    var code = 'window.location.reload();';
+    var code = (strategy)
+        ? 'document.querySelector("body").classList.add("__night-mode")'
+        : 'document.querySelector("body").classList.remove("__night-mode")';
 
     chrome.tabs.executeScript(tabId, {code: code});
 
@@ -102,6 +96,10 @@ chrome.webNavigation.onCompleted.addListener(() => {
     getCurrentTabUrl((tab) => {
         var tabDomain = getHostname(tab.url);
         var tabId = tab.id;
+
+        chrome.tabs.insertCSS(tabId, {
+            file: "app/styles.css",
+        });
 
         getSavedThemeStatus(tabDomain, strategy => {
             if(strategy) {
