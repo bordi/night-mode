@@ -1,8 +1,11 @@
 /*:root {
     background-color: #000;
 }*/
+.__night-mode {
+    background-color: #000;
+}
 
-body.__night-mode {
+.__night-mode body {
     background-color: #fff;
     filter: invert(90%);
 }

@@ -36,9 +36,9 @@ function getCurrentTabUrl(callback) {
 }
 
 function invertColors(tabId, strategy) {
-    var code = (strategy)
-        ? 'document.querySelector("body").classList.add("__night-mode")'
-        : 'document.querySelector("body").classList.remove("__night-mode")';
+    var code = strategy
+        ? 'document.documentElement.classList.add("__night-mode")'
+        : 'document.documentElement.classList.remove("__night-mode")';
 
     chrome.tabs.executeScript(tabId, {code: code});
 
@@ -82,12 +82,12 @@ document.addEventListener('DOMContentLoaded', () => {
         var tabDomain = getHostname(tab.url);
 
         getSavedThemeStatus(tabDomain, strategy => {
-            switcher.checked = strategy;
+            switcher.checked = strategy !== 0;
         });
 
         switcher.addEventListener('click', () => {
             invertColors(tab.id, switcher.checked);
-            saveThemeStatus(tabDomain, switcher.checked);
+            saveThemeStatus(tabDomain, +switcher.checked);
         });
     });
 });
@@ -97,13 +97,13 @@ chrome.webNavigation.onCompleted.addListener(() => {
         var tabDomain = getHostname(tab.url);
         var tabId = tab.id;
 
-        chrome.tabs.insertCSS(tabId, {
-            file: "app/styles.css",
-        });
-
         getSavedThemeStatus(tabDomain, strategy => {
-            if(strategy) {
-                invertColors(tabId, strategy);
+            if(strategy !== 0) {
+                chrome.tabs.insertCSS(tabId, {
+                    file: "app/styles.css",
+                });
+
+                invertColors(tabId, true);
             }
         });
     });
